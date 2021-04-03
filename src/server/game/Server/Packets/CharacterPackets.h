@@ -1,3 +1,4 @@
+
 /*
  * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
  *
@@ -167,9 +168,9 @@ namespace WorldPackets
             struct RaceUnlock
             {
                 int32 RaceID          = 0;
-                bool HasExpansion     = false;
-                bool HasAchievement   = false;
-                bool HasHeritageArmor = false;
+                bool HasExpansion     = true;
+                bool HasAchievement   = true;
+                bool HasHeritageArmor = true;
             };
 
             struct UnlockedConditionalAppearance
