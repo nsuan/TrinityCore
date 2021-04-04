@@ -18021,6 +18021,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder* holder)
         // "honor, honorLevel, honorRestState, honorRestBonus, numRespecs "
         // "FROM characters c LEFT JOIN character_fishingsteps cfs ON c.guid = cfs.guid WHERE c.guid = ?", CONNECTION_ASYNC);
 
+        //load origNative/current morph sometime in this 
+
         ObjectGuid::LowType guid;
         uint32 account;
         std::string name;

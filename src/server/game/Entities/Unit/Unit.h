@@ -1820,6 +1820,7 @@ class TC_GAME_API Unit : public WorldObject
         {
             SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NativeDisplayID), displayId);
             SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NativeXDisplayScale), displayScale);
+            if (m_origNativeID == 0) m_origNativeID = displayId;
         }
         void setTransForm(uint32 spellid) { m_transform = spellid;}
         uint32 getTransForm() const { return m_transform;}
@@ -2086,7 +2087,7 @@ class TC_GAME_API Unit : public WorldObject
 
         int32 m_procDeep;
 
-        uint32 m_origNativeID;
+        uint32 m_origNativeID = 0;
 
         typedef std::list<DynamicObject*> DynObjectList;
         DynObjectList m_dynObj;
