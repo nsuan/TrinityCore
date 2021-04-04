@@ -1812,10 +1812,10 @@ class TC_GAME_API Unit : public WorldObject
         uint32 GetDisplayId() const { return m_unitData->DisplayID; }
         virtual void SetDisplayId(uint32 modelId, float displayScale = 1.f);
         uint32 GetNativeDisplayId() const { return m_unitData->NativeDisplayID; }
-        uint32 GetOrigNativeId() const { return m_unitData->OrigNativeID; }
+        uint32 GetOrigNativeId() const { return m_origNativeID; }
         float GetNativeDisplayScale() const { return m_unitData->NativeXDisplayScale; }
         void RestoreDisplayId(bool ignorePositiveAurasPreventingMounting = false);
-        void SetOrigNativeId(uint32 displayId) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::OrigNativeID), displayId);};
+        void SetOrigNativeId(uint32 displayId) { m_origNativeID = GetNativeDisplayId(); };
         void SetNativeDisplayId(uint32 displayId, float displayScale = 1.f)
         {
             SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NativeDisplayID), displayId);
@@ -2085,6 +2085,8 @@ class TC_GAME_API Unit : public WorldObject
         DeathState m_deathState;
 
         int32 m_procDeep;
+
+        unit32 m_origNativeID;
 
         typedef std::list<DynamicObject*> DynObjectList;
         DynObjectList m_dynObj;
