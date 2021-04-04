@@ -2086,7 +2086,7 @@ class TC_GAME_API Unit : public WorldObject
 
         int32 m_procDeep;
 
-        unit32 m_origNativeID;
+        uint32 m_origNativeID;
 
         typedef std::list<DynamicObject*> DynObjectList;
         DynObjectList m_dynObj;
