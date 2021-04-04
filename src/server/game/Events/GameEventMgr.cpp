@@ -1376,6 +1376,7 @@ void GameEventMgr::ChangeEquipOrModel(int16 event_id, bool activate)
                     {
                         creature->SetDisplayId(itr->second.modelid);
                         creature->SetNativeDisplayId(itr->second.modelid);
+                        creature->SetOrigNativeId(itr->second.modelid);
                     }
                 }
                 else
@@ -1386,6 +1387,8 @@ void GameEventMgr::ChangeEquipOrModel(int16 event_id, bool activate)
                     {
                         creature->SetDisplayId(itr->second.modelid_prev);
                         creature->SetNativeDisplayId(itr->second.modelid_prev);
+                        creature->SetOrigNativeId(itr->second.modelid);
+
                     }
                 }
             }

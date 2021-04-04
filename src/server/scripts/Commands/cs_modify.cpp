@@ -77,6 +77,7 @@ public:
             { "talentpoints", rbac::RBAC_PERM_COMMAND_MODIFY_TALENTPOINTS, false, &HandleModifyTalentCommand,        "" },
             { "xp",           rbac::RBAC_PERM_COMMAND_MODIFY_XP,           false, &HandleModifyXPCommand,            "" },
             { "power",        rbac::RBAC_PERM_COMMAND_MODIFY_POWER,        false, &HandleModifyPowerCommand,         "" },
+            { "native",       rbac::RBAC_PERM_COMMAND_MORPH,               false, &HandleModifyNativeCommand,        "" },
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -776,7 +777,26 @@ public:
 
         return true;
     }
+    //morph creature or player
+    static bool HandleModifyNativeCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+            return false;
 
+        uint32 display_id = atoul(args);
+
+        Unit* target = handler->getSelectedUnit();
+        if (!target)
+            target = handler->GetSession()->GetPlayer();
+
+        // check online security
+        else if (target->GetTypeId() == TYPEID_PLAYER && handler->HasLowerSecurity(target->ToPlayer(), ObjectGuid::Empty))
+            return false;
+
+        target->SetNativeDisplayId(display_id);
+
+        return true;
+    }
     // Toggles a phaseid on a player
     static bool HandleModifyPhaseCommand(ChatHandler* handler, char const* args)
     {

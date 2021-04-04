@@ -3243,6 +3243,7 @@ void Unit::ProcessTerrainStatusUpdate(ZLiquidStatus status, Optional<LiquidData>
 
 void Unit::DeMorph()
 {
+    SetNativeDisplayId(GetOrigNativeId());
     SetDisplayId(GetNativeDisplayId());
 }
 
