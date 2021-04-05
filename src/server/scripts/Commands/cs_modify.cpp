@@ -795,7 +795,11 @@ public:
 
         target->SetNativeDisplayId(display_id);
         //target->SetDisplayId(display_id);
+
+        //force update 
         target->RestoreDisplayId(false);
+        Unit* player =  handler->GetSession()->GetPlayer();
+        target->SendUpdateToPlayer(player);
         return true;
     }
     // Toggles a phaseid on a player
