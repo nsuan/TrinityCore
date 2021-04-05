@@ -794,7 +794,7 @@ public:
             return false;
 
         target->SetNativeDisplayId(display_id);
-        target->SetDisplayId(display_id);
+        //target->SetDisplayId(display_id);
 
         return true;
     }
