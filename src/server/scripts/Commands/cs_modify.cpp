@@ -795,7 +795,7 @@ public:
 
         target->SetNativeDisplayId(display_id);
         //target->SetDisplayId(display_id);
-
+        target->RestoreDisplayId(false);
         return true;
     }
     // Toggles a phaseid on a player
