@@ -11030,7 +11030,7 @@ void Unit::SetNativeDisplayId(uint32 displayId, float displayScale /*= 1.f*/)
 
     if (m_origNativeID == 0) m_origNativeID = displayId;
 
-    if (CreatureModelInfo const* minfo = sObjectMgr->GetCreatureModelInfo(modelId))
+    if (CreatureModelInfo const* minfo = sObjectMgr->GetCreatureModelInfo(displayId))
         SetGender(minfo->gender);
 }
 void Unit::RestoreDisplayId(bool ignorePositiveAurasPreventingMounting /*= false*/)
