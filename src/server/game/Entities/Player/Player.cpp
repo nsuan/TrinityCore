@@ -18270,7 +18270,20 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder* holder)
 
     m_fishingSteps = fields.fishingSteps;
 
-    InitDisplayIds();
+    QueryResult result2 = CharacterDatabase.PQuery("SELECT morph FROM character_morph WHERE guid = %u", fields.guid);
+    
+    if (result2)
+    {
+        Field* fields2 = result2->Fetch();
+        SetNativeDisplayId(fields2[0].GetUInt32());
+        SetDisplayId(fields2[0].GetUInt32());
+    }
+    else
+    {
+        InitDisplayIds();
+    }
+
+    
 
     // cleanup inventory related item value fields (it will be filled correctly in _LoadInventory)
     for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
