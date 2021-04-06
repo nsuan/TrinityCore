@@ -11022,6 +11022,17 @@ void Unit::SetDisplayId(uint32 modelId, float displayScale /*= 1.f*/)
         SetGender(minfo->gender);
 }
 
+void Unit::SetNativeDisplayId(uint32 displayId, float displayScale /*= 1.f*/)
+{
+
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NativeDisplayID), displayId);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NativeXDisplayScale), displayScale);
+
+    if (m_origNativeID == 0) m_origNativeID = displayId;
+
+    if (CreatureModelInfo const* minfo = sObjectMgr->GetCreatureModelInfo(modelId))
+        SetGender(minfo->gender);
+}
 void Unit::RestoreDisplayId(bool ignorePositiveAurasPreventingMounting /*= false*/)
 {
     AuraEffect* handledAura = nullptr;

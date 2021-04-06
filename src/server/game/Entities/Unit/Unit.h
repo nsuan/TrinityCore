@@ -1816,12 +1816,8 @@ class TC_GAME_API Unit : public WorldObject
         float GetNativeDisplayScale() const { return m_unitData->NativeXDisplayScale; }
         void RestoreDisplayId(bool ignorePositiveAurasPreventingMounting = false);
         void SetOrigNativeId(uint32 displayId) { m_origNativeID = GetNativeDisplayId(); };
-        void SetNativeDisplayId(uint32 displayId, float displayScale = 1.f)
-        {
-            SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NativeDisplayID), displayId);
-            SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NativeXDisplayScale), displayScale);
-            if (m_origNativeID == 0) m_origNativeID = displayId;
-        }
+        virtual void SetNativeDisplayId(uint32 displayId, float displayScale = 1.f);
+   
         void setTransForm(uint32 spellid) { m_transform = spellid;}
         uint32 getTransForm() const { return m_transform;}
 
