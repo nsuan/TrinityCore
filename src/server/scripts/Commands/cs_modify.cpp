@@ -798,7 +798,7 @@ public:
 
         //force update 
         target->RestoreDisplayId(false);
-        Unit* player =  handler->GetSession()->GetPlayer();
+        Player* player =  handler->GetSession()->GetPlayer();
         target->SendUpdateToPlayer(player);
         return true;
     }
