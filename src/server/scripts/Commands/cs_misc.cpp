@@ -1934,6 +1934,7 @@ public:
             if (totalmail >= 1)
                handler->PSendSysMessage(LANG_PINFO_CHR_MAILS, readmail, totalmail);
         }
+	handler->PSendSysMessage("DisplayId: %u Native: %u", target->GetDisplayId() , target->GetNativeDisplayId());
 
         return true;
     }
