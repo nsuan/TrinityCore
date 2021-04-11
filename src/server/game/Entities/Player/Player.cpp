@@ -18275,8 +18275,11 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder* holder)
     if (result2)
     {
         Field* fields2 = result2->Fetch();
-        SetNativeDisplayId(fields2[0].GetUInt32());
-        SetDisplayId(fields2[0].GetUInt32());
+	if(fields2[0].GetUInt32() > 0) {
+	        TC_LOG_ERROR("entities.player", "Player::LoadFromDB: setting DisplayId and Native to %u", fields2[0].GetUInt32());
+		SetNativeDisplayId(fields2[0].GetUInt32());
+	        SetDisplayId(fields2[0].GetUInt32());
+	}
     }
     else
     {
