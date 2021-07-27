@@ -33,7 +33,15 @@
 
 enum MageSpells
 {
+    SPELL_MAGE_ALTER_TIME_AURA                   = 110909,
+    SPELL_MAGE_ALTER_TIME_VISUAL                 = 347402,
+    SPELL_MAGE_ARCANE_ALTER_TIME_AURA            = 342246,
+    SPELL_MAGE_ARCANE_BARRAGE_ENERGIZE           = 321529,
+    SPELL_MAGE_ARCANE_BARRAGE_R3                 = 321526,
+    SPELL_MAGE_ARCANE_CHARGE                     = 36032,
+    SPELL_MAGE_ARCANE_MAGE                       = 137021,
     SPELL_MAGE_BLAZING_BARRIER_TRIGGER           = 235314,
+    SPELL_MAGE_BLINK                             = 1953,
     SPELL_MAGE_CAUTERIZE_DOT                     = 87023,
     SPELL_MAGE_CAUTERIZED                        = 87024,
     SPELL_MAGE_CONE_OF_COLD                      = 120,
@@ -50,6 +58,8 @@ enum MageSpells
     SPELL_MAGE_LIVING_BOMB_EXPLOSION             = 44461,
     SPELL_MAGE_LIVING_BOMB_PERIODIC              = 217694,
     SPELL_MAGE_MANA_SURGE                        = 37445,
+    SPELL_MAGE_MASTER_OF_TIME                    = 342249,
+    SPELL_MAGE_REVERBERATE                       = 281482,
     SPELL_MAGE_RING_OF_FROST_DUMMY               = 91264,
     SPELL_MAGE_RING_OF_FROST_FREEZE              = 82691,
     SPELL_MAGE_RING_OF_FROST_SUMMON              = 113724,
@@ -64,7 +74,6 @@ enum MageSpells
     SPELL_MAGE_ICY_VEINS                         = 12472,
     SPELL_MAGE_CHAIN_REACTION_DUMMY              = 278309,
     SPELL_MAGE_CHAIN_REACTION                    = 278310,
-    SPELL_MAGE_TOUCH_OF_THE_MAGI_AURA            = 210824,
     SPELL_MAGE_TOUCH_OF_THE_MAGI_EXPLODE         = 210833,
 };
 
@@ -74,6 +83,195 @@ enum MiscSpells
     SPELL_SHAMAN_EXHAUSTION                      = 57723,
     SPELL_SHAMAN_SATED                           = 57724,
     SPELL_MAGE_CHILLED                           = 205708
+};
+
+// 110909 - Alter Time Aura
+// 342246 - Alter Time Aura
+class spell_mage_alter_time_aura : public AuraScript
+{
+    PrepareAuraScript(spell_mage_alter_time_aura);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo
+        ({
+            SPELL_MAGE_ALTER_TIME_VISUAL,
+            SPELL_MAGE_MASTER_OF_TIME,
+            SPELL_MAGE_BLINK,
+        });
+    }
+
+    void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        Unit* unit = GetTarget();
+        _health = unit->GetHealth();
+        _pos = unit->GetPosition();
+    }
+
+    void AfterRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        Unit* unit = GetTarget();
+        if (unit->GetDistance(_pos) <= 100.0f && GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_EXPIRE)
+        {
+            unit->SetHealth(_health);
+            unit->NearTeleportTo(_pos);
+
+            if (unit->HasAura(SPELL_MAGE_MASTER_OF_TIME))
+            {
+                SpellInfo const* blink = sSpellMgr->AssertSpellInfo(SPELL_MAGE_BLINK, DIFFICULTY_NONE);
+                unit->GetSpellHistory()->ResetCharges(blink->ChargeCategoryId);
+            }
+            unit->CastSpell(unit, SPELL_MAGE_ALTER_TIME_VISUAL);
+        }
+    }
+
+    void Register() override
+    {
+        OnEffectApply += AuraEffectApplyFn(spell_mage_alter_time_aura::OnApply, EFFECT_0, SPELL_AURA_OVERRIDE_ACTIONBAR_SPELLS, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectRemove += AuraEffectRemoveFn(spell_mage_alter_time_aura::AfterRemove, EFFECT_0, SPELL_AURA_OVERRIDE_ACTIONBAR_SPELLS, AURA_EFFECT_HANDLE_REAL);
+    }
+
+private:
+    uint64 _health = 0;
+    Position _pos;
+};
+
+// 127140 - Alter Time Active
+// 342247 - Alter Time Active
+class spell_mage_alter_time_active : public SpellScript
+{
+    PrepareSpellScript(spell_mage_alter_time_active);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo
+        ({
+            SPELL_MAGE_ALTER_TIME_AURA,
+            SPELL_MAGE_ARCANE_ALTER_TIME_AURA,
+        });
+    }
+
+    void RemoveAlterTimeAura(SpellEffIndex /*effIndex*/)
+    {
+        Unit* unit = GetCaster();
+        unit->RemoveAura(SPELL_MAGE_ALTER_TIME_AURA, ObjectGuid::Empty, 0, AURA_REMOVE_BY_EXPIRE);
+        unit->RemoveAura(SPELL_MAGE_ARCANE_ALTER_TIME_AURA, ObjectGuid::Empty, 0, AURA_REMOVE_BY_EXPIRE);
+    }
+
+    void Register() override
+    {
+        OnEffectHit += SpellEffectFn(spell_mage_alter_time_active::RemoveAlterTimeAura, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
+// 44425 - Arcane Barrage
+class spell_mage_arcane_barrage : public SpellScript
+{
+    PrepareSpellScript(spell_mage_arcane_barrage);
+
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        return ValidateSpellInfo({ SPELL_MAGE_ARCANE_BARRAGE_R3, SPELL_MAGE_ARCANE_BARRAGE_ENERGIZE })
+            && spellInfo->GetEffect(EFFECT_1);
+    }
+
+    void ConsumeArcaneCharges()
+    {
+        Unit* caster = GetCaster();
+
+        // Consume all arcane charges
+        if (int32 arcaneCharges = -caster->ModifyPower(POWER_ARCANE_CHARGES, -caster->GetMaxPower(POWER_ARCANE_CHARGES), false))
+            if (AuraEffect const* auraEffect = caster->GetAuraEffect(SPELL_MAGE_ARCANE_BARRAGE_R3, EFFECT_0, caster->GetGUID()))
+                caster->CastSpell(caster, SPELL_MAGE_ARCANE_BARRAGE_ENERGIZE, { SPELLVALUE_BASE_POINT0, arcaneCharges * auraEffect->GetAmount() / 100 });
+    }
+
+    void HandleEffectHitTarget(SpellEffIndex /*effIndex*/)
+    {
+        if (GetHitUnit()->GetGUID() != _primaryTarget)
+            SetHitDamage(CalculatePct(GetHitDamage(), GetEffectInfo(EFFECT_1)->CalcValue(GetCaster())));
+    }
+
+    void MarkPrimaryTarget(SpellEffIndex /*effIndex*/)
+    {
+        _primaryTarget = GetHitUnit()->GetGUID();
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_mage_arcane_barrage::HandleEffectHitTarget, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+        OnEffectLaunchTarget += SpellEffectFn(spell_mage_arcane_barrage::MarkPrimaryTarget, EFFECT_1, SPELL_EFFECT_DUMMY);
+        AfterCast += SpellCastFn(spell_mage_arcane_barrage::ConsumeArcaneCharges);
+    }
+
+    ObjectGuid _primaryTarget;
+};
+
+// 195302 - Arcane Charge
+class spell_mage_arcane_charge_clear : public SpellScript
+{
+    PrepareSpellScript(spell_mage_arcane_charge_clear);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_MAGE_ARCANE_CHARGE });
+    }
+
+    void RemoveArcaneCharge(SpellEffIndex /*effIndex*/)
+    {
+        GetHitUnit()->RemoveAurasDueToSpell(SPELL_MAGE_ARCANE_CHARGE);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_mage_arcane_charge_clear::RemoveArcaneCharge, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
+// 1449 - Arcane Explosion
+class spell_mage_arcane_explosion : public SpellScript
+{
+    PrepareSpellScript(spell_mage_arcane_explosion);
+
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        if (!ValidateSpellInfo({ SPELL_MAGE_ARCANE_MAGE, SPELL_MAGE_REVERBERATE }))
+            return false;
+
+        SpellEffectInfo const* damageEffect = spellInfo->GetEffect(EFFECT_1);
+        return damageEffect && damageEffect->IsEffect(SPELL_EFFECT_SCHOOL_DAMAGE);
+    }
+
+    void CheckRequiredAuraForBaselineEnergize(SpellEffIndex effIndex)
+    {
+        if (!GetUnitTargetCountForEffect(EFFECT_1) || !GetCaster()->HasAura(SPELL_MAGE_ARCANE_MAGE))
+            PreventHitDefaultEffect(effIndex);
+    }
+
+    void HandleReverberate(SpellEffIndex effIndex)
+    {
+        bool procTriggered = [&]()
+        {
+            Unit const* caster = GetCaster();
+            AuraEffect const* triggerChance = caster->GetAuraEffect(SPELL_MAGE_REVERBERATE, EFFECT_0);
+            if (!triggerChance)
+                return false;
+
+            AuraEffect const* requiredTargets = caster->GetAuraEffect(SPELL_MAGE_REVERBERATE, EFFECT_1);
+            if (!requiredTargets)
+                return false;
+
+            return GetUnitTargetCountForEffect(EFFECT_1) >= requiredTargets->GetAmount() && roll_chance_i(triggerChance->GetAmount());
+        }();
+
+        if (!procTriggered)
+            PreventHitDefaultEffect(effIndex);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_mage_arcane_explosion::CheckRequiredAuraForBaselineEnergize, EFFECT_0, SPELL_EFFECT_ENERGIZE);
+        OnEffectHitTarget += SpellEffectFn(spell_mage_arcane_explosion::HandleReverberate, EFFECT_2, SPELL_EFFECT_ENERGIZE);
+    }
 };
 
 // 235313 - Blazing Barrier
@@ -460,7 +658,7 @@ class spell_mage_ignite : public AuraScript
         amount += eventInfo.GetProcTarget()->GetRemainingPeriodicAmount(eventInfo.GetActor()->GetGUID(), SPELL_MAGE_IGNITE, SPELL_AURA_PERIODIC_DAMAGE);
 
         CastSpellExtraArgs args(aurEff);
-        args.SpellValueOverrides.AddBP0(amount);
+        args.AddSpellMod(SPELLVALUE_BASE_POINT0, amount);
         GetTarget()->CastSpell(eventInfo.GetProcTarget(), SPELL_MAGE_IGNITE, args);
     }
 
@@ -868,6 +1066,11 @@ class spell_mage_water_elemental_freeze : public SpellScript
 
 void AddSC_mage_spell_scripts()
 {
+    RegisterAuraScript(spell_mage_alter_time_aura);
+    RegisterSpellScript(spell_mage_alter_time_active);
+    RegisterSpellScript(spell_mage_arcane_barrage);
+    RegisterSpellScript(spell_mage_arcane_charge_clear);
+    RegisterSpellScript(spell_mage_arcane_explosion);
     RegisterAuraScript(spell_mage_blazing_barrier);
     RegisterAuraScript(spell_mage_burning_determination);
     RegisterSpellAndAuraScriptPair(spell_mage_cauterize, spell_mage_cauterize_AuraScript);

@@ -164,15 +164,15 @@ void QuestObjectiveCriteriaMgr::SaveToDB(CharacterDatabaseTransaction& trans)
     }
 }
 
-void QuestObjectiveCriteriaMgr::ResetCriteria(CriteriaCondition condition, int32 failAsset, bool evenIfCriteriaComplete)
+void QuestObjectiveCriteriaMgr::ResetCriteria(CriteriaFailEvent failEvent, int32 failAsset, bool evenIfCriteriaComplete)
 {
-    TC_LOG_DEBUG("criteria.quest", "QuestObjectiveCriteriaMgr::ResetCriteria(%u, %d, %s)", condition, failAsset, evenIfCriteriaComplete ? "true" : "false");
+    TC_LOG_DEBUG("criteria.quest", "QuestObjectiveCriteriaMgr::ResetCriteria(%u, %d, %s)", uint32(failEvent), failAsset, evenIfCriteriaComplete ? "true" : "false");
 
     // disable for gamemasters with GM-mode enabled
     if (_owner->IsGameMaster())
         return;
 
-    if (CriteriaList const* playerCriteriaList = sCriteriaMgr->GetCriteriaByFailEvent(condition, failAsset))
+    if (CriteriaList const* playerCriteriaList = sCriteriaMgr->GetCriteriaByFailEvent(failEvent, failAsset))
     {
         for (Criteria const* playerCriteria : *playerCriteriaList)
         {
@@ -292,6 +292,14 @@ bool QuestObjectiveCriteriaMgr::CanUpdateCriteriaTree(Criteria const* criteria, 
     if (_owner->GetGroup() && _owner->GetGroup()->isRaidGroup() && !quest->IsAllowedInRaid(referencePlayer->GetMap()->GetDifficultyID()))
     {
         TC_LOG_TRACE("criteria.quest", "QuestObjectiveCriteriaMgr::CanUpdateCriteriaTree: (Id: %u Type %s Quest Objective %u) Quest cannot be completed in raid group",
+            criteria->ID, CriteriaMgr::GetCriteriaTypeString(criteria->Entry->Type), objective->ID);
+        return false;
+    }
+
+    uint16 slot = _owner->FindQuestSlot(objective->QuestID);
+    if (slot >= MAX_QUEST_LOG_SIZE || !_owner->IsQuestObjectiveCompletable(slot, quest, *objective))
+    {
+        TC_LOG_TRACE("criteria.quest", "QuestObjectiveCriteriaMgr::CanUpdateCriteriaTree: (Id: %u Type %s Quest Objective %u) Objective not completable",
             criteria->ID, CriteriaMgr::GetCriteriaTypeString(criteria->Entry->Type), objective->ID);
         return false;
     }

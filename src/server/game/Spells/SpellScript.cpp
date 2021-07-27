@@ -249,7 +249,7 @@ SpellScript::OnCalcCritChanceHandler::OnCalcCritChanceHandler(SpellOnCalcCritCha
     _onCalcCritChanceHandlerScript = onCalcCritChanceHandlerScript;
 }
 
-void SpellScript::OnCalcCritChanceHandler::Call(SpellScript* spellScript, Unit* victim, float& critChance) const
+void SpellScript::OnCalcCritChanceHandler::Call(SpellScript* spellScript, Unit const* victim, float& critChance) const
 {
     (spellScript->*_onCalcCritChanceHandlerScript)(victim, critChance);
 }
@@ -413,6 +413,15 @@ bool SpellScript::IsInCheckCastHook() const
 {
     return m_currentScriptState == SPELL_SCRIPT_HOOK_CHECK_CAST;
 }
+
+bool SpellScript::IsAfterTargetSelectionPhase() const
+{
+    return IsInHitPhase()
+        || m_currentScriptState == SPELL_SCRIPT_HOOK_ON_CAST
+        || m_currentScriptState == SPELL_SCRIPT_HOOK_AFTER_CAST
+        || m_currentScriptState == SPELL_SCRIPT_HOOK_CALC_CRIT_CHANCE;
+}
+
 bool SpellScript::IsInTargetHook() const
 {
     switch (m_currentScriptState)
@@ -427,6 +436,22 @@ bool SpellScript::IsInTargetHook() const
     }
     return false;
 }
+
+bool SpellScript::IsInModifiableHook() const
+{
+    // after hit hook executed after damage/healing is already done
+    // modifying it at this point has no effect
+    switch (m_currentScriptState)
+    {
+        case SPELL_SCRIPT_HOOK_EFFECT_LAUNCH_TARGET:
+        case SPELL_SCRIPT_HOOK_EFFECT_HIT_TARGET:
+        case SPELL_SCRIPT_HOOK_BEFORE_HIT:
+        case SPELL_SCRIPT_HOOK_HIT:
+            return true;
+    }
+    return false;
+}
+
 bool SpellScript::IsInHitPhase() const
 {
     return (m_currentScriptState >= HOOK_SPELL_HIT_START && m_currentScriptState < HOOK_SPELL_HIT_END);
@@ -483,6 +508,39 @@ GameObject* SpellScript::GetExplTargetGObj() const
 Item* SpellScript::GetExplTargetItem() const
 {
     return m_spell->m_targets.GetItemTarget();
+}
+
+int64 SpellScript::GetUnitTargetCountForEffect(SpellEffIndex effect) const
+{
+    if (!IsAfterTargetSelectionPhase())
+    {
+        TC_LOG_ERROR("scripts", "Script: `%s` Spell: `%u`: function SpellScript::GetUnitTargetCountForEffect was called, but function has no effect in current hook! (spell has not selected targets yet)",
+            m_scriptName->c_str(), m_scriptSpellId);
+        return 0;
+    }
+    return m_spell->GetUnitTargetCountForEffect(effect);
+}
+
+int64 SpellScript::GetGameObjectTargetCountForEffect(SpellEffIndex effect) const
+{
+    if (!IsAfterTargetSelectionPhase())
+    {
+        TC_LOG_ERROR("scripts", "Script: `%s` Spell: `%u`: function SpellScript::GetGameObjectTargetCountForEffect was called, but function has no effect in current hook! (spell has not selected targets yet)",
+            m_scriptName->c_str(), m_scriptSpellId);
+        return 0;
+    }
+    return m_spell->GetGameObjectTargetCountForEffect(effect);
+}
+
+int64 SpellScript::GetItemTargetCountForEffect(SpellEffIndex effect) const
+{
+    if (!IsAfterTargetSelectionPhase())
+    {
+        TC_LOG_ERROR("scripts", "Script: `%s` Spell: `%u`: function SpellScript::GetItemTargetCountForEffect was called, but function has no effect in current hook! (spell has not selected targets yet)",
+            m_scriptName->c_str(), m_scriptSpellId);
+        return 0;
+    }
+    return m_spell->GetItemTargetCountForEffect(effect);
 }
 
 Unit* SpellScript::GetHitUnit() const
@@ -561,7 +619,7 @@ int32 SpellScript::GetHitDamage() const
 
 void SpellScript::SetHitDamage(int32 damage)
 {
-    if (!IsInTargetHook())
+    if (!IsInModifiableHook())
     {
         TC_LOG_ERROR("scripts", "Script: `%s` Spell: `%u`: function SpellScript::SetHitDamage was called, but function has no effect in current hook!", m_scriptName->c_str(), m_scriptSpellId);
         return;
@@ -581,7 +639,7 @@ int32 SpellScript::GetHitHeal() const
 
 void SpellScript::SetHitHeal(int32 heal)
 {
-    if (!IsInTargetHook())
+    if (!IsInModifiableHook())
     {
         TC_LOG_ERROR("scripts", "Script: `%s` Spell: `%u`: function SpellScript::SetHitHeal was called, but function has no effect in current hook!", m_scriptName->c_str(), m_scriptSpellId);
         return;
@@ -910,7 +968,7 @@ AuraScript::EffectCalcCritChanceHandler::EffectCalcCritChanceHandler(AuraEffectC
     _effectHandlerScript = effectHandlerScript;
 }
 
-void AuraScript::EffectCalcCritChanceHandler::Call(AuraScript* auraScript, AuraEffect const* aurEff, Unit* victim, float& critChance) const
+void AuraScript::EffectCalcCritChanceHandler::Call(AuraScript* auraScript, AuraEffect const* aurEff, Unit const* victim, float& critChance) const
 {
     (auraScript->*_effectHandlerScript)(aurEff, victim, critChance);
 }

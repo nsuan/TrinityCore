@@ -181,9 +181,6 @@ enum SpellScriptHookType
 
 #define HOOK_SPELL_HIT_START SPELL_SCRIPT_HOOK_EFFECT_HIT
 #define HOOK_SPELL_HIT_END SPELL_SCRIPT_HOOK_AFTER_HIT + 1
-#define HOOK_SPELL_START SPELL_SCRIPT_HOOK_EFFECT
-#define HOOK_SPELL_END SPELL_SCRIPT_HOOK_CHECK_CAST + 1
-#define HOOK_SPELL_COUNT HOOK_SPELL_END - HOOK_SPELL_START
 
 class TC_GAME_API SpellScript : public _SpellScript
 {
@@ -196,7 +193,7 @@ class TC_GAME_API SpellScript : public _SpellScript
             typedef void(CLASSNAME::*SpellBeforeHitFnType)(SpellMissInfo missInfo); \
             typedef void(CLASSNAME::*SpellHitFnType)(); \
             typedef void(CLASSNAME::*SpellCastFnType)(); \
-            typedef void(CLASSNAME::*SpellOnCalcCritChanceFnType)(Unit* victim, float& chance); \
+            typedef void(CLASSNAME::*SpellOnCalcCritChanceFnType)(Unit const* victim, float& chance); \
             typedef void(CLASSNAME::*SpellObjectAreaTargetSelectFnType)(std::list<WorldObject*>&); \
             typedef void(CLASSNAME::*SpellObjectTargetSelectFnType)(WorldObject*&); \
             typedef void(CLASSNAME::*SpellDestinationTargetSelectFnType)(SpellDestination&);
@@ -254,7 +251,7 @@ class TC_GAME_API SpellScript : public _SpellScript
         {
             public:
                 OnCalcCritChanceHandler(SpellOnCalcCritChanceFnType onCalcCritChanceHandlerScript);
-                void Call(SpellScript* spellScript, Unit* victim, float& critChance) const;
+                void Call(SpellScript* spellScript, Unit const* victim, float& critChance) const;
             private:
                 SpellOnCalcCritChanceFnType _onCalcCritChanceHandlerScript;
         };
@@ -320,7 +317,9 @@ class TC_GAME_API SpellScript : public _SpellScript
         void _PrepareScriptCall(SpellScriptHookType hookType);
         void _FinishScriptCall();
         bool IsInCheckCastHook() const;
+        bool IsAfterTargetSelectionPhase() const;
         bool IsInTargetHook() const;
+        bool IsInModifiableHook() const;
         bool IsInHitPhase() const;
         bool IsInEffectHook() const;
     private:
@@ -444,6 +443,11 @@ class TC_GAME_API SpellScript : public _SpellScript
         // returns: Item which was selected as an explicit spell target or NULL if there's no target
         Item* GetExplTargetItem() const;
 
+        // methods usable only after spell targets have been fully selected
+        int64 GetUnitTargetCountForEffect(SpellEffIndex effect) const;
+        int64 GetGameObjectTargetCountForEffect(SpellEffIndex effect) const;
+        int64 GetItemTargetCountForEffect(SpellEffIndex effect) const;
+
         // methods useable only during spell hit on target, or during spell launch on target:
         // returns: target of current effect if it was Unit otherwise NULL
         Unit* GetHitUnit() const;
@@ -560,7 +564,7 @@ class TC_GAME_API AuraScript : public _SpellScript
         typedef void(CLASSNAME::*AuraEffectCalcAmountFnType)(AuraEffect const*, int32 &, bool &); \
         typedef void(CLASSNAME::*AuraEffectCalcPeriodicFnType)(AuraEffect const*, bool &, int32 &); \
         typedef void(CLASSNAME::*AuraEffectCalcSpellModFnType)(AuraEffect const*, SpellModifier* &); \
-        typedef void(CLASSNAME::*AuraEffectCalcCritChanceFnType)(AuraEffect const*, Unit*, float&); \
+        typedef void(CLASSNAME::*AuraEffectCalcCritChanceFnType)(AuraEffect const*, Unit const*, float&); \
         typedef void(CLASSNAME::*AuraEffectAbsorbFnType)(AuraEffect*, DamageInfo &, uint32 &); \
         typedef void(CLASSNAME::*AuraEffectSplitFnType)(AuraEffect*, DamageInfo &, uint32 &); \
         typedef bool(CLASSNAME::*AuraCheckProcFnType)(ProcEventInfo&); \
@@ -638,7 +642,7 @@ class TC_GAME_API AuraScript : public _SpellScript
         {
             public:
                 EffectCalcCritChanceHandler(AuraEffectCalcCritChanceFnType effectHandlerScript, uint8 effIndex, uint16 effName);
-                void Call(AuraScript* auraScript, AuraEffect const* aurEff, Unit* victim, float& critChance) const;
+                void Call(AuraScript* auraScript, AuraEffect const* aurEff, Unit const* victim, float& critChance) const;
             private:
                 AuraEffectCalcCritChanceFnType _effectHandlerScript;
         };

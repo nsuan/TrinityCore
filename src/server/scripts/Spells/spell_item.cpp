@@ -193,7 +193,7 @@ class spell_item_alchemist_stone : public AuraScript
 
         Unit* caster = eventInfo.GetActionTarget();
         CastSpellExtraArgs args(aurEff);
-        args.SpellValueOverrides.AddBP0(amount);
+        args.AddSpellBP0(amount);
         caster->CastSpell(nullptr, spellId, args);
     }
 
@@ -438,7 +438,7 @@ class spell_item_blessing_of_ancient_kings : public AuraScript
         else
         {
             CastSpellExtraArgs args(aurEff);
-            args.SpellValueOverrides.AddBP0(absorb);
+            args.AddSpellBP0(absorb);
             GetTarget()->CastSpell(eventInfo.GetProcTarget(), SPELL_PROTECTION_OF_ANCIENT_KINGS, args);
         }
     }
@@ -502,7 +502,7 @@ class spell_item_deadly_precision_dummy : public SpellScript
     {
         SpellInfo const* spellInfo = sSpellMgr->AssertSpellInfo(SPELL_DEADLY_PRECISION, GetCastDifficulty());
         CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
-        args.SpellValueOverrides.AddMod(SPELLVALUE_AURA_STACK, spellInfo->StackAmount);
+        args.AddSpellMod(SPELLVALUE_AURA_STACK, spellInfo->StackAmount);
         GetCaster()->CastSpell(GetCaster(), spellInfo->Id, args);
     }
 
@@ -962,7 +962,7 @@ class spell_item_frozen_shadoweave : public AuraScript
 
         Unit* caster = eventInfo.GetActor();
         CastSpellExtraArgs args(aurEff);
-        args.SpellValueOverrides.AddBP0(CalculatePct(damageInfo->GetDamage(), aurEff->GetAmount()));
+        args.AddSpellBP0(CalculatePct(damageInfo->GetDamage(), aurEff->GetAmount()));
         caster->CastSpell(nullptr, SPELL_SHADOWMEND, args);
     }
 
@@ -1300,7 +1300,7 @@ class spell_item_necrotic_touch : public AuraScript
             return;
 
         CastSpellExtraArgs args(aurEff);
-        args.SpellValueOverrides.AddBP0(CalculatePct(damageInfo->GetDamage(), aurEff->GetAmount()));
+        args.AddSpellBP0(CalculatePct(damageInfo->GetDamage(), aurEff->GetAmount()));
         GetTarget()->CastSpell(nullptr, SPELL_ITEM_NECROTIC_TOUCH_PROC, args);
     }
 
@@ -1458,7 +1458,7 @@ class spell_item_persistent_shield : public AuraScript
                 return;
 
         CastSpellExtraArgs args(aurEff);
-        args.SpellValueOverrides.AddBP0(bp0);
+        args.AddSpellBP0(bp0);
         caster->CastSpell(target, SPELL_PERSISTENT_SHIELD_TRIGGERED, args);
     }
 
@@ -1494,7 +1494,7 @@ class spell_item_pet_healing : public AuraScript
             return;
 
         CastSpellExtraArgs args(aurEff);
-        args.SpellValueOverrides.AddBP0(CalculatePct(damageInfo->GetDamage(), aurEff->GetAmount()));
+        args.AddSpellBP0(CalculatePct(damageInfo->GetDamage(), aurEff->GetAmount()));
         eventInfo.GetActor()->CastSpell(nullptr, SPELL_HEALTH_LINK, args);
     }
 
@@ -1519,6 +1519,47 @@ class spell_item_piccolo_of_the_flaming_fire : public SpellScript
     void Register() override
     {
         OnEffectHitTarget += SpellEffectFn(spell_item_piccolo_of_the_flaming_fire::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+    }
+};
+
+enum PowerCircle
+{
+    SPELL_LIMITLESS_POWER = 45044
+};
+
+// 45043 - Power Circle (Shifting Naaru Sliver)
+class spell_item_power_circle : public AuraScript
+{
+    PrepareAuraScript(spell_item_power_circle);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_LIMITLESS_POWER });
+    }
+
+    bool CheckCaster(Unit* target)
+    {
+        return target->GetGUID() == GetCasterGUID();
+    }
+
+    void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        GetTarget()->CastSpell(nullptr, SPELL_LIMITLESS_POWER, true);
+        if (Aura* buff = GetTarget()->GetAura(SPELL_LIMITLESS_POWER))
+            buff->SetDuration(GetDuration());
+    }
+
+    void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        GetTarget()->RemoveAurasDueToSpell(SPELL_LIMITLESS_POWER);
+    }
+
+    void Register() override
+    {
+        DoCheckAreaTarget += AuraCheckAreaTargetFn(spell_item_power_circle::CheckCaster);
+
+        AfterEffectApply += AuraEffectApplyFn(spell_item_power_circle::OnApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectRemove += AuraEffectRemoveFn(spell_item_power_circle::OnRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
     }
 };
 
@@ -1877,7 +1918,7 @@ class spell_item_swift_hand_justice_dummy : public AuraScript
 
         Unit* caster = eventInfo.GetActor();
         CastSpellExtraArgs args(aurEff);
-        args.SpellValueOverrides.AddBP0(caster->CountPctFromMaxHealth(aurEff->GetAmount()));
+        args.AddSpellBP0(caster->CountPctFromMaxHealth(aurEff->GetAmount()));
         caster->CastSpell(nullptr, SPELL_SWIFT_HAND_OF_JUSTICE_HEAL, args);
     }
 
@@ -4120,6 +4161,7 @@ void AddSC_item_spell_scripts()
     RegisterAuraScript(spell_item_persistent_shield);
     RegisterAuraScript(spell_item_pet_healing);
     RegisterSpellScript(spell_item_piccolo_of_the_flaming_fire);
+    RegisterAuraScript(spell_item_power_circle);
     RegisterSpellScript(spell_item_savory_deviate_delight);
     RegisterSpellScript(spell_item_scroll_of_recall);
     RegisterAuraScript(spell_item_unsated_craving);

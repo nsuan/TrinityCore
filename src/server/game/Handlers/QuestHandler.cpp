@@ -27,7 +27,6 @@
 #include "GossipDef.h"
 #include "Group.h"
 #include "Log.h"
-#include "LootMgr.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Player.h"
@@ -472,7 +471,7 @@ void WorldSession::HandleQuestLogRemoveQuest(WorldPackets::Quest::QuestLogRemove
 
             if (quest)
             {
-                if (quest->HasSpecialFlag(QUEST_SPECIAL_FLAGS_TIMED))
+                if (quest->GetLimitTime())
                     _player->RemoveTimedQuest(questId);
 
                 if (quest->HasFlag(QUEST_FLAGS_FLAGS_PVP))
@@ -486,7 +485,7 @@ void WorldSession::HandleQuestLogRemoveQuest(WorldPackets::Quest::QuestLogRemove
             _player->TakeQuestSourceItem(questId, true); // remove quest src item from player
             _player->AbandonQuest(questId); // remove all quest items player received before abandoning quest. Note, this does not remove normal drop items that happen to be quest requirements.
             _player->RemoveActiveQuest(questId);
-            _player->RemoveCriteriaTimer(CRITERIA_TIMED_TYPE_QUEST, questId);
+            _player->RemoveCriteriaTimer(CriteriaStartEvent::AcceptQuest, questId);
 
             TC_LOG_INFO("network", "%s abandoned quest %u", _player->GetGUID().ToString().c_str(), questId);
 
@@ -604,7 +603,7 @@ void WorldSession::HandleQuestgiverCompleteQuest(WorldPackets::Quest::QuestGiver
     }
     else
     {
-        if (quest->HasSpecialFlag(QUEST_SPECIAL_FLAGS_DELIVER))                  // some items required
+        if (quest->HasQuestObjectiveType(QUEST_OBJECTIVE_ITEM))                  // some items required
             _player->PlayerTalkClass->SendQuestGiverRequestItems(quest, packet.QuestGiverGUID, _player->CanRewardQuest(quest, false), false);
         else                                            // no items required
             _player->PlayerTalkClass->SendQuestGiverOfferReward(quest, packet.QuestGiverGUID, true);
